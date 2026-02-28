@@ -2,6 +2,8 @@
 Django settings for server_checker project.
 """
 
+
+
 from pathlib import Path
 from decouple import config
 import os
@@ -31,6 +33,8 @@ INSTALLED_APPS = [
     'monitoring',
 ]
 
+
+#middleware
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
@@ -134,3 +138,5 @@ CORS_ALLOW_ALL_ORIGINS = True
 
 # Monitoring settings
 MONITORING_INTERVAL = config('MONITORING_INTERVAL', default=300, cast=int)  # 5 minutes in seconds
+
+
