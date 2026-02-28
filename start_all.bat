@@ -20,4 +20,4 @@ pause
 
 
 
-#.\start_all.bat
+#.\start_all.bat cmnd prompt
