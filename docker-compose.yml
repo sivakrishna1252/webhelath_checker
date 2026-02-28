@@ -31,3 +31,7 @@ services:
     container_name: server_checker_redis
     ports:
       - "6379:6379"
+
+
+
+#docker-compose.yml start
