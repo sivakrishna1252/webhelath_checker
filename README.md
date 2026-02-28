@@ -1,284 +1,104 @@
-# Server Checker
+# Server Health Checker System
 
-A comprehensive Django-based server monitoring system that monitors your servers every few minutes and sends email alerts when issues are detected.
+A comprehensive Django-based server monitoring system that actively monitors your websites and internal applications, tracks their uptime, measures response times, and sends customized email alerts when issues are detected.
 
-## Features
+---
 
-- **Automated Monitoring**: Monitors servers every 5 minutes (configurable)
-- **Email Alerts**: Sends email notifications when servers go down
-- **Recovery Notifications**: Optional recovery emails when servers come back online
-- **Multiple Website Support**: Monitor multiple websites with separate configurations
-- **Internal App Monitoring**: Monitor internal applications (frontend, backend, APIs, etc.)
-- **Status Dashboard**: Beautiful web interface showing real-time status
-- **Admin Interface**: Full Django admin for managing configurations
-- **API Endpoints**: REST API for status information
-- **No Spam**: Smart alerting prevents duplicate notifications
+## 🔍 How we identify if a Server is "UP" or "DOWN"
 
-## Quick Start
+The core logic of this system relies on a reliable continuous background worker (`background_monitor.py`) that checks your configured servers and applications against an ongoing schedule (usually every 60 seconds).
 
-### 1. Installation
+### The server is considered **UP (Online)** when:
+1. A secure networking connection to the server is successfully established.
+2. The server responds fully within your configured **timeout duration**.
+3. The HTTP Status Code returned by the server **matches** the "Expected Status Code" configured for that specific website (e.g., `200 OK`).
+
+### The server is considered **DOWN (Offline)** when:
+1. **Timeout error**: The server fails to respond within the configured timeout threshold.
+2. **Invalid Status Code**: The server returns an unexpected status code (e.g., `500 Internal Server Error`, `502 Bad Gateway`, `401 Unauthorized` or `404 Not Found`).
+3. **Connection error**: The server actively refuses the connection, drops packets, or a DNS resolution fails entirely.
+
+When a server transitions to **DOWN**, the system captures the exact raw response code, logs the timeout instance, and immediately dispatches an email alert to the platform's administrator ensuring visibility of the breakdown.
+
+---
+
+## ⚡ Architecture & Workflow
+
+1. **Dashboard Frontend (Django)**: 
+   - A beautiful frontend UI structure mapping your URLs, configuring email thresholds, determining check intervals, and visualizing real-time analytical uptime & metrics.
+2. **Background Monitor Worker (`background_monitor.py`)**: 
+   - A standalone Python thread worker utilizing `ThreadPoolExecutor`. It actively polls the database for all active online URLs, runs rapid parallel HTTP probes reliably without slowing the Django main thread, evaluates the endpoints against safety checks, and stores the response results down into our SQL storage safely.
+3. **Alerting System (`services.py`)**:
+   - Actively checks the background health stats compared to previous historic loops. It uses Django's `send_mail` SMTP backbone to send **Downtime Alerts** instantly and **Recovery Alerts** the moment stability is repaired.
+
+---
+
+## 🚀 Total Project Setup Guide
+
+Follow these sequential steps to rapidly deploy and connect the overall architecture locally on Windows.
+
+### 1. Prerequisites
+- Python 3.8+
+- Git (Optional)
+
+### 2. Code Installation
+Open your Command Prompt or PowerShell:
 
 ```bash
-# Clone or download the project
-cd server-checker
+# Navigate to the workspace project directory
+cd "C:\Users\VivekNookala\Desktop\server cheker"
 
-# Install dependencies
+# Create an isolated python virtual environment (Best Practice)
+python -m venv venv
+venv\Scripts\activate
+
+# Install all mandatory library dependencies
 pip install -r requirements.txt
-
-# Copy environment file
-cp env.example .env
-
-# Edit .env file with your configuration
 ```
 
-### 2. Database Setup
-
+### 3. Environment & Dynamic Configuration
 ```bash
-# Run migrations
+# Replicate the structure of the environmental secrets file
+copy .env.example .env
+```
+Open the newly created `.env` file using a text editor (like VSCode or Notepad) and paste in your correct live variables (crucially, the `EMAIL_HOST_USER` and `EMAIL_HOST_PASSWORD` settings required to trigger the emailing capability effectively).
+
+### 4. Initializing the Database
+The default database relies on SQLite. To generate tables, users data, and metric repositories, process the migrations:
+```bash
+python manage.py makemigrations
 python manage.py migrate
 
-# Create superuser
+# Register the administrative profile to access configurations
 python manage.py createsuperuser
 ```
 
-### 3. Configure Email Settings
+### 5. Launch the Whole Application Ecosystem
+We have included a startup batch file to ease testing and development workflows. It bridges the Django environment alongside the background monitoring threads simultaneously.
 
-Edit your `.env` file with your email configuration:
+Simply click the file within your explorer:
+`start_all.bat`
 
-```env
-EMAIL_HOST=smtp.gmail.com
-EMAIL_PORT=587
-EMAIL_USE_TLS=True
-EMAIL_HOST_USER=your-email@gmail.com
-EMAIL_HOST_PASSWORD=your-app-password
-DEFAULT_FROM_EMAIL=noreply@serverchecker.com
-```
-
-### 4. Start the Services
-
+Or run via Terminal:
 ```bash
-# Terminal 1: Start Django development server
-python manage.py runserver
-
-# Terminal 2: Start Redis (if not already running)
-redis-server
-
-# Terminal 3: Start Celery worker
-celery -A server_checker worker --loglevel=info
-
-# Terminal 4: Start Celery beat (scheduler)
-celery -A server_checker beat --loglevel=info
+.\start_all.bat
 ```
 
-### 5. Access the Application
+This instantiates two core parallel channels:
+1. **Dashboard Interface**: `http://127.0.0.1:8000/` (Visualize your stats, setup configs)
+2. **Background Monitor Tracker**: The silent background loop handling the HTTP checks continuously inside terminal logging!
 
-- **Main Dashboard**: http://localhost:8000/
-- **Admin Interface**: http://localhost:8000/admin/
-- **API Status**: http://localhost:8000/api/status/
+---
 
-## Usage
+## ⚙️ How to Monitor & Use
 
-### Adding Websites
+1. Launch your favorite browser to `http://127.0.0.1:8000/` and access the user dashboard.
+2. Locate the **Add Website** action.
+3. Provide the endpoints details securely:
+   - **Name**: e.g. "Main Ecommerce Server"
+   - **URL**: e.g. `https://mysite.com/heartbeat`
+   - **Alert Email** & **Recovery Email**: To specific developers needing alerts.
+   - **Expected Status Code**: Mostly checking for `200`.
+4. As soon as you validate the setup, the background worker will integrate the endpoint on its proceeding cycle and visually push metrics up into your application dynamically!
 
-1. Go to the main dashboard
-2. Click "Add Website"
-3. Fill in the website details:
-   - **Name**: Display name for the website
-   - **URL**: Full URL to monitor (e.g., https://example.com)
-   - **Alert Email**: Email address for alerts
-   - **Recovery Email**: Optional separate email for recovery notifications
-   - **Check Interval**: How often to check (default: 5 minutes)
-   - **Timeout**: Request timeout (default: 30 seconds)
-
-### Adding Internal Applications
-
-1. Go to a website's detail page
-2. Click "Add Internal App"
-3. Configure the internal application:
-   - **Name**: Name of the internal app
-   - **Type**: Frontend, Backend, API, etc.
-   - **URL**: Full URL to monitor
-   - **Expected Status Code**: Usually 200
-
-### Monitoring Configuration
-
-- **Check Interval**: How often to check each website (in seconds)
-- **Timeout**: How long to wait for a response before timing out
-- **Expected Status Code**: HTTP status code that indicates success
-- **Alert Cooldown**: Prevents spam by limiting duplicate alerts
-
-## API Endpoints
-
-### GET /api/status/
-
-Returns JSON with current monitoring status:
-
-```json
-{
-  "global_stats": {
-    "total_websites": 5,
-    "online_websites": 4,
-    "offline_websites": 1,
-    "total_internal_apps": 12,
-    "online_internal_apps": 11,
-    "offline_internal_apps": 1,
-    "overall_uptime": 95.5
-  },
-  "websites": [
-    {
-      "id": 1,
-      "name": "Example Website",
-      "url": "https://example.com",
-      "status": "online",
-      "uptime_percentage": 99.2,
-      "last_check": "2024-01-15T10:30:00Z",
-      "response_time": 0.245
-    }
-  ],
-  "timestamp": "2024-01-15T10:30:00Z"
-}
-```
-
-## Management Commands
-
-### Manual Monitoring Check
-
-```bash
-# Check all websites
-python manage.py run_monitoring
-
-# Check specific website
-python manage.py run_monitoring --website-id 1
-
-# Check specific internal app
-python manage.py run_monitoring --internal-app-id 1
-
-# Force run even if monitoring is disabled
-python manage.py run_monitoring --force
-```
-
-## Configuration
-
-### Environment Variables
-
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `SECRET_KEY` | Django secret key | Required |
-| `DEBUG` | Debug mode | True |
-| `ALLOWED_HOSTS` | Allowed hosts | localhost,127.0.0.1 |
-| `EMAIL_HOST` | SMTP host | smtp.gmail.com |
-| `EMAIL_PORT` | SMTP port | 587 |
-| `EMAIL_USE_TLS` | Use TLS | True |
-| `EMAIL_HOST_USER` | SMTP username | Required |
-| `EMAIL_HOST_PASSWORD` | SMTP password | Required |
-| `CELERY_BROKER_URL` | Redis URL | redis://localhost:6379/0 |
-| `MONITORING_INTERVAL` | Check interval in seconds | 300 |
-
-### Monitoring Settings
-
-Access the Django admin to configure:
-- Global monitoring settings
-- Individual website configurations
-- Internal application settings
-- Alert logs and history
-
-## Production Deployment
-
-### Using Docker
-
-```dockerfile
-# Dockerfile
-FROM python:3.11-slim
-
-WORKDIR /app
-COPY requirements.txt .
-RUN pip install -r requirements.txt
-
-COPY . .
-RUN python manage.py collectstatic --noinput
-RUN python manage.py migrate
-
-CMD ["gunicorn", "server_checker.wsgi:application"]
-```
-
-### Using Systemd
-
-Create service files for:
-- Django application
-- Celery worker
-- Celery beat
-- Redis
-
-### Using Docker Compose
-
-```yaml
-version: '3.8'
-services:
-  web:
-    build: .
-    ports:
-      - "8000:8000"
-    depends_on:
-      - redis
-      - db
-    environment:
-      - CELERY_BROKER_URL=redis://redis:6379/0
-  
-  worker:
-    build: .
-    command: celery -A server_checker worker --loglevel=info
-    depends_on:
-      - redis
-      - db
-  
-  beat:
-    build: .
-    command: celery -A server_checker beat --loglevel=info
-    depends_on:
-      - redis
-      - db
-  
-  redis:
-    image: redis:alpine
-  
-  db:
-    image: postgres:13
-    environment:
-      POSTGRES_DB: serverchecker
-      POSTGRES_USER: user
-      POSTGRES_PASSWORD: password
-```
-
-## Troubleshooting
-
-### Common Issues
-
-1. **Email not sending**: Check SMTP configuration and credentials
-2. **Monitoring not running**: Ensure Celery worker and beat are running
-3. **Database errors**: Run migrations with `python manage.py migrate`
-4. **Redis connection**: Ensure Redis is running and accessible
-
-### Logs
-
-Check logs for:
-- Django: Application logs
-- Celery worker: Task execution logs
-- Celery beat: Scheduler logs
-- Redis: Database logs
-
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests if applicable
-5. Submit a pull request
-
-## License
-
-This project is open source and available under the MIT License.
-
-
-
-
-
+You may also bind individual **Internal Apps** (Frontend UI routers, API clusters, Redis nodes) directly below their main Website namespace for deep hierarchy control.
