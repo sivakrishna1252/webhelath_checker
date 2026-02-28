@@ -8,7 +8,7 @@ pipeline {
         // In a real environment, you might use credentials for Docker Hub
         // DOCKER_CREDENTIALS_ID = 'your-docker-credentials'
     }
-
+//stages
     stages {
         stage('Checkout') {
             steps {
