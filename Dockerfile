@@ -29,3 +29,10 @@ EXPOSE 8000
 
 # Default command (can be overridden by docker-compose)
 CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
+
+
+
+#docker setup
+#docker build -t server-checker .
+#docker run -d -p 8000:8000 --name server-checker server-checker
+
