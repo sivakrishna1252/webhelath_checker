@@ -1,0 +1,66 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+
+{% block title %}Add Internal App - Server Checker{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-plus"></i> Add Internal Application
+                </h5>
+                <small class="text-muted">Adding to: {{ website.name }}</small>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    {{ form|crispy }}
+                    
+                    <div class="d-flex justify-content-between">
+                        <a href="{% url 'monitoring:website_detail' website.id %}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left"></i> Cancel
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i> Add Internal App
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <!-- Help Section -->
+        <div class="card mt-4">
+            <div class="card-header">
+                <h6 class="mb-0">
+                    <i class="fas fa-info-circle"></i> Help
+                </h6>
+            </div>
+            <div class="card-body">
+                <h6>Internal Application Types:</h6>
+                <ul class="mb-3">
+                    <li><strong>Frontend:</strong> User-facing web application</li>
+                    <li><strong>Backend API:</strong> API endpoints and services</li>
+                    <li><strong>Landing Page:</strong> Marketing or landing pages</li>
+                    <li><strong>Admin Panel:</strong> Administrative interface</li>
+                    <li><strong>API Endpoint:</strong> Specific API endpoints</li>
+                    <li><strong>Database:</strong> Database connectivity checks</li>
+                    <li><strong>Other:</strong> Any other internal service</li>
+                </ul>
+                
+                <h6>Configuration Tips:</h6>
+                <ul class="mb-0">
+                    <li>Use full URLs including the protocol (https:// or http://)</li>
+                    <li>For APIs, you might want to use a health check endpoint</li>
+                    <li>Set appropriate timeouts based on expected response times</li>
+                    <li>Choose the correct expected status code (usually 200)</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+
+

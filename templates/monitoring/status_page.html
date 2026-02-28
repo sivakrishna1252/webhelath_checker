@@ -1,0 +1,354 @@
+{% extends 'base.html' %}
+
+{% block title %}Status Dashboard - Server Checker{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h1 class="mb-4">
+            <i class="fas fa-tachometer-alt"></i> Status Dashboard
+        </h1>
+    </div>
+</div>
+
+<!-- Global Stats -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <h5 class="card-title">
+                    <i class="fas fa-globe"></i> Websites
+                </h5>
+                <h3 class="text-primary">{{ global_stats.online_websites }}/{{ global_stats.total_websites }}</h3>
+                <p class="text-muted">Online</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <h5 class="card-title">
+                    <i class="fas fa-cogs"></i> Internal Apps
+                </h5>
+                <h3 class="text-primary">{{ global_stats.online_internal_apps }}/{{ global_stats.total_internal_apps }}
+                </h3>
+                <p class="text-muted">Online</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <h5 class="card-title">
+                    <i class="fas fa-chart-line"></i> Overall Uptime
+                </h5>
+                <h3
+                    class="{% if global_stats.overall_uptime >= 99 %}uptime-good{% elif global_stats.overall_uptime >= 95 %}uptime-warning{% else %}uptime-bad{% endif %}">
+                    {{ global_stats.overall_uptime }}%
+                </h3>
+                <p class="text-muted">Recent Health</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <h5 class="card-title">
+                    <i class="fas fa-bell"></i> Recent Alerts
+                </h5>
+                <h3 class="text-warning">{{ recent_alerts_count }}</h3>
+                <p class="text-muted">Active Alerts</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Websites Status -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="fas fa-globe"></i> Websites Status
+                </h5>
+                <a href="{% url 'monitoring:add_website' %}" class="btn btn-primary btn-sm">
+                    <i class="fas fa-plus"></i> Add Website
+                </a>
+            </div>
+            <div class="card-body">
+                {% if website_stats %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Website</th>
+                                <th>Status</th>
+                                <th>Uptime</th>
+                                <th>Response Time</th>
+                                <th>Last Check</th>
+                                <th>Internal Apps</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in website_stats %}
+                            <tr>
+                                <td>
+                                    <strong>{{ item.website.name }}</strong>
+                                    <br>
+                                    <small class="text-muted">{{ item.website.url }}</small>
+                                </td>
+                                <td>
+                                    {% if item.website.status == 'inactive' %}
+                                    <span class="badge bg-secondary">
+                                        <i class="fas fa-ban"></i> Disabled
+                                    </span>
+                                    {% elif item.website.status == 'maintenance' %}
+                                    <span class="badge bg-warning text-dark">
+                                        <i class="fas fa-tools"></i> Maintenance
+                                    </span>
+                                    {% elif item.stats.status == 'online' %}
+                                    <span class="badge bg-success">
+                                        <i class="fas fa-check-circle"></i> Online
+                                    </span>
+                                    {% elif item.stats.status == 'offline' %}
+                                    <span class="badge bg-danger">
+                                        <i class="fas fa-times-circle"></i> Offline
+                                    </span>
+                                    {% else %}
+                                    <span class="badge bg-secondary">
+                                        <i class="fas fa-question-circle"></i> Unknown
+                                    </span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <span
+                                        class="{% if item.stats.uptime_percentage >= 99 %}uptime-good{% elif item.stats.uptime_percentage >= 95 %}uptime-warning{% else %}uptime-bad{% endif %}">
+                                        {{ item.stats.uptime_percentage }}%
+                                    </span>
+                                </td>
+                                <td>
+                                    {% if item.stats.avg_response_time %}
+                                    {{ item.stats.avg_response_time }}s
+                                    {% else %}
+                                    <span class="text-muted">N/A</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if item.stats.last_check %}
+                                    {{ item.stats.last_check|date:"M d, H:i" }}
+                                    {% else %}
+                                    <span class="text-muted">Never</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if item.website.status == 'inactive' %}
+                                    <span class="text-muted"><i class="fas fa-ban"></i> Disabled</span>
+                                    {% elif item.website.status == 'maintenance' %}
+                                    <span class="text-muted"><i class="fas fa-tools"></i> Maintenance</span>
+                                    {% else %}
+                                    {% for app in item.internal_apps %}
+                                    <span
+                                        class="badge {% if app.is_online %}bg-success{% else %}bg-danger{% endif %} me-1">
+                                        {{ app.name }}
+                                    </span>
+                                    {% empty %}
+                                    <span class="text-muted">None</span>
+                                    {% endfor %}
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <div class="btn-group btn-group-sm">
+                                        <a href="{% url 'monitoring:website_detail' item.website.id %}"
+                                            class="btn btn-outline-primary" title="View Details">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                        <a href="{% url 'monitoring:edit_website' item.website.id %}"
+                                            class="btn btn-outline-secondary" title="Edit Configuration">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                        {% csrf_token %}
+                                        <button class="btn btn-outline-info"
+                                            onclick="manualCheck('{{ item.website.id }}')" title="Check Now">
+                                            <i class="fas fa-sync"></i>
+                                        </button>
+                                        {% if item.website.status == 'inactive' %}
+                                        <a href="{% url 'monitoring:delete_website' item.website.id %}"
+                                            class="btn btn-danger" title="Delete Permanently">
+                                            <i class="fas fa-trash-alt"></i>
+                                        </a>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-5">
+                    <i class="fas fa-globe fa-3x text-muted mb-3"></i>
+                    <h5 class="text-muted">No websites configured</h5>
+                    <p class="text-muted">Add your first website to start monitoring</p>
+                    <a href="{% url 'monitoring:add_website' %}" class="btn btn-primary">
+                        <i class="fas fa-plus"></i> Add Website
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Alerts -->
+{% if recent_alerts %}
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="fas fa-bell"></i> Recent Alerts
+                    </h5>
+                    <form action="{% url 'monitoring:clear_all_alerts' %}" method="post" style="display: inline;"
+                        onsubmit="handleClearAll(event, this)">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-outline-secondary btn-sm">
+                            <i class="fas fa-check-double"></i> Clear All
+                        </button>
+                    </form>
+                </div>
+            </div>
+            <div class="card-body">
+                {% for alert in recent_alerts %}
+                <div
+                    class="alert-item p-3 mb-2 {% if alert.alert_type == 'recovery' %}recovery{% elif alert.alert_type == 'error' %}error{% endif %}">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <strong>{{ alert.website.name }}</strong>
+                            <span
+                                class="badge {% if alert.alert_type == 'recovery' %}bg-success{% elif alert.alert_type == 'down' %}bg-danger{% else %}bg-warning{% endif %} ms-2">
+                                {{ alert.get_alert_type_display }}
+                            </span>
+                            <br>
+                            <small class="text-muted">{{ alert.sent_at|date:"M d, H:i" }}</small>
+                        </div>
+                        <div class="text-end d-flex align-items-center">
+                            {% if alert.is_sent %}
+                            <i class="fas fa-check-circle text-success me-3"></i>
+                            {% else %}
+                            <i class="fas fa-exclamation-triangle text-warning me-3"></i>
+                            {% endif %}
+
+                            <form action="{% url 'monitoring:clear_alert' alert.id %}" method="post"
+                                class="clear-alert-form" onsubmit="handleClearAlert(event, this)">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-sm btn-link text-muted p-0" title="Clear alert">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+                <div class="text-center mt-3">
+                    <a href="{% url 'monitoring:alerts_page' %}" class="btn btn-outline-primary">
+                        View All Alerts
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function manualCheck(websiteId) {
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value;
+        fetch(`/website/${websiteId}/check/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': csrfToken || '',
+                'Content-Type': 'application/json',
+            },
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Manual check triggered successfully!');
+                    location.reload();
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            })
+            .catch(error => {
+                alert('Error triggering check: ' + error);
+            });
+    }
+
+    function handleClearAlert(event, form) {
+        event.preventDefault();
+        const alertItem = form.closest('.alert-item');
+        const url = form.action;
+        const csrfToken = form.querySelector('[name=csrfmiddlewaretoken]').value;
+
+        alertItem.style.opacity = '0.5';
+        alertItem.style.pointerEvents = 'none';
+
+        fetch(url + '?ajax=true', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': csrfToken,
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alertItem.style.transition = 'all 0.3s ease';
+                    alertItem.style.transform = 'translateX(100px)';
+                    alertItem.style.opacity = '0';
+
+                    setTimeout(() => {
+                        alertItem.remove();
+                        // Update counter
+                        const counters = document.querySelectorAll('.text-warning');
+                        counters.forEach(counter => {
+                            if (counter.tagName === 'H3') {
+                                let count = parseInt(counter.textContent);
+                                if (count > 0) counter.textContent = count - 1;
+                            }
+                        });
+
+                        const container = document.querySelector('.card-body:has(.alert-item)') || document.querySelectorAll('.alert-item').length === 0 && document.querySelector('.card-body');
+                        if (container && document.querySelectorAll('.alert-item').length === 0) {
+                            location.reload(); // If it's the last one on dashboard, better reload to refresh entire state
+                        }
+                    }, 300);
+                } else {
+                    alertItem.style.opacity = '1';
+                    alertItem.style.pointerEvents = 'auto';
+                }
+            });
+    }
+
+    function handleClearAll(event, form) {
+        event.preventDefault();
+        if (!confirm('Clear all alerts?')) return;
+
+        const url = form.action;
+        const formData = new FormData(form);
+
+        fetch(url, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+            .then(() => location.reload());
+    }
+</script>
+{% endblock %}

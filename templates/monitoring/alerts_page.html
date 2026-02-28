@@ -1,0 +1,166 @@
+{% extends 'base.html' %}
+
+{% block title %}Alerts - Server Checker{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1>
+                <i class="fas fa-bell"></i> Alerts
+            </h1>
+            <div class="d-flex gap-2">
+                <form method="get" class="d-flex align-items-center gap-2">
+                    <div class="form-check form-switch me-2">
+                        <input class="form-check-input" type="checkbox" id="showCleared" name="show_cleared"
+                            value="true" {% if show_cleared %}checked{% endif %} onchange="this.form.submit()">
+                        <label class="form-check-label" for="showCleared">Show Cleared</label>
+                    </div>
+                    <input type="text" name="search" class="form-control" placeholder="Search alerts..."
+                        value="{{ search_query }}">
+                    <button type="submit" class="btn btn-outline-primary">
+                        <i class="fas fa-search"></i>
+                    </button>
+                </form>
+                <form action="{% url 'monitoring:clear_all_alerts' %}" method="post">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-outline-secondary"
+                        onclick="return confirm('Clear all alerts?')">
+                        <i class="fas fa-check-double"></i> Clear All
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Alert History</h5>
+            </div>
+            <div class="card-body">
+                {% if page_obj %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Time</th>
+                                <th>Website</th>
+                                <th>Type</th>
+                                <th>Subject</th>
+                                <th>Email</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for alert in page_obj %}
+                            <tr>
+                                <td>{{ alert.sent_at|date:"M d, H:i:s" }}</td>
+                                <td>
+                                    <a href="{% url 'monitoring:website_detail' alert.website.id %}">
+                                        {{ alert.website.name }}
+                                    </a>
+                                </td>
+                                <td>
+                                    <span
+                                        class="badge {% if alert.alert_type == 'recovery' %}bg-success{% elif alert.alert_type == 'down' %}bg-danger{% else %}bg-warning{% endif %}">
+                                        {{ alert.get_alert_type_display }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="text-truncate d-inline-block" style="max-width: 200px;"
+                                        title="{{ alert.subject }}">
+                                        {{ alert.subject }}
+                                    </span>
+                                </td>
+                                <td>{{ alert.email_sent_to }}</td>
+                                <td>
+                                    {% if alert.is_sent %}
+                                    <span class="badge bg-success">
+                                        <i class="fas fa-check-circle"></i> Sent
+                                    </span>
+                                    {% else %}
+                                    <span class="badge bg-warning">
+                                        <i class="fas fa-exclamation-triangle"></i> Failed
+                                    </span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if not alert.is_cleared %}
+                                    <form action="{% url 'monitoring:clear_alert' alert.id %}" method="post"
+                                        style="display: inline;">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-sm btn-outline-secondary" title="Clear">
+                                            <i class="fas fa-check"></i>
+                                        </button>
+                                    </form>
+                                    {% else %}
+                                    <span class="badge bg-secondary">Cleared</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Pagination -->
+                {% if page_obj.has_other_pages %}
+                <nav aria-label="Alerts pagination">
+                    <ul class="pagination justify-content-center">
+                        {% if page_obj.has_previous %}
+                        <li class="page-item">
+                            <a class="page-link"
+                                href="?page=1{% if search_query %}&search={{ search_query }}{% endif %}">First</a>
+                        </li>
+                        <li class="page-item">
+                            <a class="page-link"
+                                href="?page={{ page_obj.previous_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}">Previous</a>
+                        </li>
+                        {% endif %}
+
+                        <li class="page-item active">
+                            <span class="page-link">
+                                Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+                            </span>
+                        </li>
+
+                        {% if page_obj.has_next %}
+                        <li class="page-item">
+                            <a class="page-link"
+                                href="?page={{ page_obj.next_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}">Next</a>
+                        </li>
+                        <li class="page-item">
+                            <a class="page-link"
+                                href="?page={{ page_obj.paginator.num_pages }}{% if search_query %}&search={{ search_query }}{% endif %}">Last</a>
+                        </li>
+                        {% endif %}
+                    </ul>
+                </nav>
+                {% endif %}
+                {% else %}
+                <div class="text-center py-5">
+                    <i class="fas fa-bell fa-3x text-muted mb-3"></i>
+                    <h5 class="text-muted">No alerts found</h5>
+                    <p class="text-muted">
+                        {% if search_query %}
+                        No alerts match your search criteria.
+                        {% else %}
+                        Alerts will appear here when websites go down or recover.
+                        {% endif %}
+                    </p>
+                    {% if search_query %}
+                    <a href="{% url 'monitoring:alerts_page' %}" class="btn btn-outline-primary">
+                        Clear Search
+                    </a>
+                    {% endif %}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

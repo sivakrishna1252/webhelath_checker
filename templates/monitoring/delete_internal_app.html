@@ -1,0 +1,60 @@
+{% extends 'base.html' %}
+
+{% block title %}Delete {{ internal_app.name }} - Server Checker{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card border-danger">
+            <div class="card-header bg-danger text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-exclamation-triangle"></i> Delete Internal Application
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-warning">
+                    <i class="fas fa-warning"></i>
+                    <strong>Warning!</strong> This action cannot be undone.
+                </div>
+                
+                <p>Are you sure you want to delete the internal application <strong>{{ internal_app.name }}</strong>?</p>
+                
+                <div class="card bg-light">
+                    <div class="card-body">
+                        <h6>Internal App Details:</h6>
+                        <p><strong>Name:</strong> {{ internal_app.name }}</p>
+                        <p><strong>Type:</strong> {{ internal_app.get_app_type_display }}</p>
+                        <p><strong>URL:</strong> {{ internal_app.url }}</p>
+                        <p><strong>Website:</strong> {{ internal_app.website.name }}</p>
+                        <p><strong>Total Checks:</strong> {{ internal_app.checks.count }}</p>
+                    </div>
+                </div>
+                
+                <div class="mt-4">
+                    <p class="text-muted">
+                        <i class="fas fa-info-circle"></i>
+                        This will also delete all associated monitoring checks and alert logs for this internal application.
+                    </p>
+                </div>
+                
+                <form method="post" class="mt-4">
+                    {% csrf_token %}
+                    <div class="d-flex justify-content-between">
+                        <a href="{% url 'monitoring:website_detail' internal_app.website.id %}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left"></i> Cancel
+                        </a>
+                        <button type="submit" class="btn btn-danger">
+                            <i class="fas fa-trash"></i> Delete Internal App
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+
+
+
+

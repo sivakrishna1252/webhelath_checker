@@ -1,0 +1,54 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+
+{% block title %}Add Website - Server Checker{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-plus"></i> Add New Website
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    {{ form|crispy }}
+
+                    <div class="d-flex justify-content-between">
+                        <a href="{% url 'monitoring:status_page' %}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left"></i> Cancel
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i> Add Website
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Help Section -->
+        <div class="card mt-4">
+            <div class="card-header">
+                <h6 class="mb-0">
+                    <i class="fas fa-info-circle"></i> Help
+                </h6>
+            </div>
+            <div class="card-body">
+                <h6>Configuration Tips:</h6>
+                <ul class="mb-0">
+                    <li><strong>URL:</strong> Use the full URL including https:// or http://</li>
+                    <li><strong>Check Interval:</strong> How often to check (in seconds). Default is 300 seconds (5
+                        minutes)</li>
+                    <li><strong>Timeout:</strong> How long to wait for a response before timing out</li>
+                    <li><strong>Expected Status Code:</strong> Usually 200 for normal websites, 200-299 for success</li>
+                    <li><strong>Alert Email:</strong> Email address to send alerts to when the website goes down</li>
+                    <li><strong>Recovery Email:</strong> Optional separate email for recovery notifications</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
