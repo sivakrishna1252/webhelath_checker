@@ -379,3 +379,4 @@ class MonitoringStats:
             'offline_internal_apps': total_internal_apps - online_internal_apps,
             'overall_uptime': round(avg_uptime, 2)
         }
+#migrations
