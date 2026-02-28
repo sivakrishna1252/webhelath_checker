@@ -30,3 +30,7 @@ urlpatterns = [
     path('alert/<int:alert_id>/clear/', views.clear_alert, name='clear_alert'),
     path('alerts/clear-all/', views.clear_all_alerts, name='clear_all_alerts'),
 ]
+
+
+
+#urls wil be working
