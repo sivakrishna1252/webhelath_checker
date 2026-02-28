@@ -38,6 +38,9 @@ def run_professional_monitoring():
 
     print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] Cycle completed.", flush=True)
 
+
+
+#replace this with celery
 if __name__ == "__main__":
     print("--- Professional Health Checker Started ---", flush=True)
     print("Checking 30+ sites in parallel every 60 seconds.", flush=True)
