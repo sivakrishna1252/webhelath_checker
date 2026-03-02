@@ -1,6 +1,3 @@
-"""
-Monitoring services for checking website and internal app status.
-"""
 import requests
 import time
 from datetime import datetime, timedelta
@@ -15,13 +12,10 @@ logger = logging.getLogger(__name__)
 
 
 class MonitoringService:
-    """Service class for handling monitoring operations."""
-    
     def __init__(self):
         self.settings = MonitoringSettings.get_settings()
     
     def check_website(self, website):
-        """Check a website's status."""
         try:
             start_time = time.time()
             response = requests.get(website.url, timeout=website.timeout, allow_redirects=True)
@@ -71,7 +65,6 @@ class MonitoringService:
             return check
     
     def check_internal_app(self, internal_app):
-        """Check an internal app's status."""
         try:
             start_time = time.time()
             response = requests.get(internal_app.url, timeout=internal_app.timeout, allow_redirects=True)
@@ -124,7 +117,6 @@ class MonitoringService:
             return check
     
     def handle_website_alerts(self, website, check):
-        """Handle alert logic for website checks."""
         # Suppress alerts if website is not active (e.g., maintenance or inactive)
         if website.status != 'active':
             return
@@ -132,7 +124,7 @@ class MonitoringService:
         if not check.is_online:
             # Website is down - send alert
             if AlertLog.should_send_alert(website, 'down'):
-                subject = f"🚨 URGENT: {website.name} Service Interruption Detected"
+                subject = f"🚨 URGENT: {website.name} is DOWN"
                 message = f"""
 Dear Administrator,
 
@@ -145,7 +137,6 @@ Website Details:
 - URL: {website.url}
 - Detected at: {check.check_time.strftime('%Y-%m-%d %H:%M:%S UTC')}
 - Error Details: {check.error_message}
-- Response Time: {check.response_time if check.response_time else 'N/A'}s
 
 Please investigate this issue immediately to restore services.
 
@@ -161,44 +152,10 @@ Web Health Checker System
                     email_to=website.alert_email
                 )
         else:
-            # Website is online - check if we should send recovery email
-            if website.send_recovery_email:
-                # Check if there was a recent down alert
-                recent_down_alert = AlertLog.objects.filter(
-                    website=website,
-                    alert_type='down',
-                    sent_at__gte=timezone.now() - timedelta(hours=1)
-                ).exists()
-                
-                if recent_down_alert and AlertLog.should_send_alert(website, 'recovery'):
-                    subject = f"✅ RECOVERY: {website.name} is back ONLINE"
-                    message = f"""
-Dear Administrator,
-
-Monitoring Alert: {website.name} has recovered and is now ONLINE.
-
-Website Details:
-- Name: {website.name}
-- URL: {website.url}
-- Recovery Time: {check.check_time.strftime('%Y-%m-%d %H:%M:%S UTC')}
-- Response Time: {check.response_time}s
-
-No further action is required at this time.
-
-Best regards,
-Web Health Checker System
-                    """
-                    
-                    AlertLog.send_alert(
-                        website=website,
-                        alert_type='recovery',
-                        subject=subject,
-                        message=message,
-                        email_to=website.recovery_email or website.alert_email
-                    )
+            # Website is online - nothing to do here as per user request
+            pass
     
     def handle_internal_app_alerts(self, internal_app, check):
-        """Handle alert logic for internal app checks."""
         # Suppress alerts if internal app's website is not active
         if internal_app.website.status != 'active':
             return
@@ -220,7 +177,6 @@ Component Details:
 - URL: {internal_app.url}
 - Detected at: {check.check_time.strftime('%Y-%m-%d %H:%M:%S UTC')}
 - Error Details: {check.error_message}
-- Response Time: {check.response_time if check.response_time else 'N/A'}s
 
 Please investigate this issue immediately.
 
@@ -236,45 +192,10 @@ Web Health Checker System
                     email_to=internal_app.website.alert_email
                 )
         else:
-            # Internal app is online - check if we should send recovery email
-            if internal_app.website.send_recovery_email:
-                # Check if there was a recent down alert for this internal app
-                recent_down_alert = AlertLog.objects.filter(
-                    website=internal_app.website,
-                    alert_type='down',
-                    sent_at__gte=timezone.now() - timedelta(hours=1)
-                ).exists()
-                
-                if recent_down_alert and AlertLog.should_send_alert(internal_app.website, 'recovery'):
-                    subject = f"✅ RECOVERY: Internal App {internal_app.name} is back ONLINE"
-                    message = f"""
-Dear Administrator,
-
-Monitoring Alert: The internal app '{internal_app.name}' on {internal_app.website.name} has recovered and is now ONLINE.
-
-Component Details:
-- Internal App: {internal_app.name} ({internal_app.app_type})
-- Website: {internal_app.website.name}
-- URL: {internal_app.url}
-- Recovery Time: {check.check_time.strftime('%Y-%m-%d %H:%M:%S UTC')}
-- Response Time: {check.response_time}s
-
-No further action is required.
-
-Best regards,
-Web Health Checker System
-                    """
-                    
-                    AlertLog.send_alert(
-                        website=internal_app.website,
-                        alert_type='recovery',
-                        subject=subject,
-                        message=message,
-                        email_to=internal_app.website.recovery_email or internal_app.website.alert_email
-                    )
+            # Internal app is online - nothing to do here
+            pass
     
     def run_monitoring_cycle(self):
-        """Run a complete monitoring cycle for all active websites and internal apps."""
         if not self.settings.is_monitoring_active:
             logger.info("Monitoring is disabled")
             return
@@ -310,11 +231,9 @@ Web Health Checker System
 
 
 class MonitoringStats:
-    """Service class for generating monitoring statistics."""
     
     @staticmethod
     def get_website_stats(website):
-        """Get statistics for a website based on current available checks (limited to last 20)."""
         from django.utils import timezone
         
         checks = MonitoringCheck.objects.filter(
@@ -355,7 +274,6 @@ class MonitoringStats:
     
     @staticmethod
     def get_global_stats():
-        """Get global monitoring statistics."""
         websites = Website.objects.filter(status='active')
         internal_apps = InternalApp.objects.filter(is_active=True, website__status='active')
         

@@ -18,11 +18,8 @@ from django.conf import settings
 
 
 def status_page(request):
-    """Main status page showing all monitoring information."""
-    # Get global stats
     global_stats = MonitoringStats.get_global_stats()
     
-    # Get all websites with their stats
     websites = Website.objects.all().prefetch_related('internal_apps')
     website_stats = []
     
@@ -54,7 +51,6 @@ def status_page(request):
 
 
 def website_detail(request, website_id):
-    """Detailed view for a specific website."""
     website = get_object_or_404(Website, id=website_id)
     
     # Get website stats
@@ -91,37 +87,10 @@ def website_detail(request, website_id):
 
 
 def add_website(request):
-    """Add a new website to monitor."""
     if request.method == 'POST':
         form = WebsiteForm(request.POST)
         if form.is_valid():
             website = form.save()
-            
-            try:
-                subject = f"🐱‍🏍 New Website Added to Monitoring: {website.name}"
-                message = f"""Hello,
-
-A new website has been successfully added to the Web Health Checker monitoring system.
-
-Website Details:
-- Name: {website.name}
-- URL: {website.url}
-- Status: {website.get_status_display()}
-- Alert Email: {website.alert_email}
-
-The system will now monitor this website according to the configured settings.
-
-Best regards,
-Web Health Checker System"""
-                send_mail(
-                    subject=subject,
-                    message=message,
-                    from_email=settings.DEFAULT_FROM_EMAIL,
-                    recipient_list=[website.alert_email],
-                    fail_silently=True,
-                )
-            except Exception:
-                pass
                 
             messages.success(request, f'Website "{website.name}" has been added successfully!')
             return redirect('monitoring:website_detail', website_id=website.id)
@@ -132,7 +101,6 @@ Web Health Checker System"""
 
 
 def edit_website(request, website_id):
-    """Edit an existing website."""
     website = get_object_or_404(Website, id=website_id)
     
     if request.method == 'POST':
@@ -148,7 +116,6 @@ def edit_website(request, website_id):
 
 
 def add_internal_app(request, website_id):
-    """Add a new internal app to monitor."""
     website = get_object_or_404(Website, id=website_id)
     
     if request.method == 'POST':
@@ -166,7 +133,6 @@ def add_internal_app(request, website_id):
 
 
 def edit_internal_app(request, internal_app_id):
-    """Edit an existing internal app."""
     internal_app = get_object_or_404(InternalApp, id=internal_app_id)
     
     if request.method == 'POST':
@@ -182,7 +148,6 @@ def edit_internal_app(request, internal_app_id):
 
 
 def delete_website(request, website_id):
-    """Delete a website."""
     website = get_object_or_404(Website, id=website_id)
     
     if request.method == 'POST':
@@ -192,29 +157,8 @@ def delete_website(request, website_id):
         
         website.delete()
         
-        try:
-            subject = f"🗑️ Website Deleted from Monitoring: {website_name}"
-            message = f"""Hello,
-
-A website has been permanently removed from the Web Health Checker monitoring system.
-
-Deleted Website Details:
-- Name: {website_name}
-- URL: {website_url}
-
-All monitoring checks and warning alerts for this website have now been stopped and deleted.
-
-Best regards,
-Web Health Checker System"""
-            send_mail(
-                subject=subject,
-                message=message,
-                from_email=settings.DEFAULT_FROM_EMAIL,
-                recipient_list=[alert_email],
-                fail_silently=True,
-            )
-        except Exception:
-            pass
+        # Email is now handled by signals in monitoring/signals.py
+        pass
             
         messages.success(request, f'Website "{website_name}" has been deleted successfully!')
         return redirect('monitoring:status_page')
@@ -223,7 +167,6 @@ Web Health Checker System"""
 
 
 def delete_internal_app(request, internal_app_id):
-    """Delete an internal app."""
     internal_app = get_object_or_404(InternalApp, id=internal_app_id)
     website = internal_app.website
     
@@ -239,7 +182,6 @@ def delete_internal_app(request, internal_app_id):
 @csrf_exempt
 @require_http_methods(["POST"])
 def manual_check(request, website_id):
-    """Manually trigger a check for a website."""
     website = get_object_or_404(Website, id=website_id)
     
     try:
@@ -265,7 +207,6 @@ def manual_check(request, website_id):
 
 
 def api_status(request):
-    """API endpoint for status information."""
     global_stats = MonitoringStats.get_global_stats()
     
     websites = Website.objects.filter(status='active')
@@ -295,7 +236,6 @@ def api_status(request):
 
 
 def alerts_page(request):
-    """Page showing all alerts."""
     alerts = AlertLog.objects.all().order_by('-sent_at')
     
     # Pagination
@@ -332,7 +272,6 @@ def alerts_page(request):
 
 @require_http_methods(["POST"])
 def clear_alert(request, alert_id):
-    """Clear a single alert."""
     alert = get_object_or_404(AlertLog, id=alert_id)
     alert.is_cleared = True
     alert.save()
@@ -346,7 +285,6 @@ def clear_alert(request, alert_id):
 
 @require_http_methods(["POST"])
 def clear_all_alerts(request):
-    """Clear all alerts for a website or all alerts."""
     website_id = request.POST.get('website_id')
     
     if website_id:
