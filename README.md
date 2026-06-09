@@ -1,5 +1,7 @@
 # Server Health Checker System
 
+https://healthchecks.io/
+
 A comprehensive Django-based server monitoring system that actively monitors your websites and internal applications, tracks their uptime, measures response times, and sends customized email alerts when issues are detected.
 
 ---

@@ -122,8 +122,24 @@ class MonitoringService:
             return
             
         if not check.is_online:
-            # Website is down - send alert
-            if AlertLog.should_send_alert(website, 'down'):
+            # Get up to the last 20 checks to find consecutive failures
+            recent_checks = MonitoringCheck.objects.filter(
+                website=website,
+                internal_app__isnull=True
+            ).order_by('-check_time')[:20]
+            
+            consecutive_failures = 0
+            for c in recent_checks:
+                if not c.is_online:
+                    consecutive_failures += 1
+                else:
+                    break
+                    
+            # (Requires 2 consecutive failures to trigger an alert - i.e. 5 minutes)
+            should_alert = consecutive_failures >= 2
+                
+            # Website is down - send alert only if it's been down for two consecutive checks
+            if should_alert and AlertLog.should_send_alert(website, 'down'):
                 subject = f"🚨 URGENT: {website.name} is DOWN"
                 message = f"""
 Dear Administrator,
@@ -161,8 +177,23 @@ Web Health Checker System
             return
             
         if not check.is_online:
-            # Internal app is down - send alert
-            if AlertLog.should_send_alert(internal_app.website, 'down'):
+            # Get up to the last 20 checks to find consecutive failures
+            recent_checks = MonitoringCheck.objects.filter(
+                internal_app=internal_app
+            ).order_by('-check_time')[:20]
+            
+            consecutive_failures = 0
+            for c in recent_checks:
+                if not c.is_online:
+                    consecutive_failures += 1
+                else:
+                    break
+                    
+            # Only alert if there are at least 2 consecutive failures
+            should_alert = consecutive_failures >= 2
+                
+            # Internal app is down - send alert only if it's been down for two consecutive checks
+            if should_alert and AlertLog.should_send_alert(internal_app.website, 'down'):
                 subject = f"🚨 URGENT: Internal App {internal_app.name} is DOWN"
                 message = f"""
 Dear Administrator,

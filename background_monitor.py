@@ -43,8 +43,8 @@ def run_professional_monitoring():
 #replace this with celery
 if __name__ == "__main__":
     print("--- Professional Health Checker Started ---", flush=True)
-    print("Checking 30+ sites in parallel every 60 seconds.", flush=True)
+    print("Checking 30+ sites in parallel every 5 minutes.", flush=True)
     
     while True:
         run_professional_monitoring()
-        time.sleep(60)
+        time.sleep(300)
